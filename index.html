@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Questwright – FTB Quests builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f1efe9;--pan:#fff;--ink:#23262b;--mut:#6a707a;--line:#d6d2c7;--grid:#e3dfd4;--acc:#b8860b;--accink:#fff;--node:#f5e3a8;--bad:#b3261e;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#181b1f;--pan:#23272c;--ink:#e8e6df;--mut:#939aa5;--line:#3a4048;--grid:#262b31;--acc:#e0b341;--accink:#1a1500;--node:#4a3f1c;--bad:#ff8a80;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#181b1f;--pan:#23272c;--ink:#e8e6df;--mut:#939aa5;--line:#3a4048;--grid:#262b31;--acc:#e0b341;--accink:#1a1500;--node:#4a3f1c;--bad:#ff8a80;color-scheme:dark}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;flex-direction:column}
+header{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 12px;background:var(--pan);border-bottom:1px solid var(--line)}
+h1{font:700 16px "Silkscreen",monospace;margin:0 8px 0 0;color:var(--acc)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 10px;cursor:pointer}
+button:hover{border-color:var(--acc)}button.pri{background:var(--acc);color:var(--accink);border-color:var(--acc);font-weight:600}
+button.on{background:var(--acc);color:var(--accink)}button.del{color:var(--bad)}
+input,select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;width:100%}
+:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+main{flex:1;display:flex;min-height:0}
+#wrap{flex:1;overflow:auto;position:relative;background:var(--bg)}
+#cv{position:relative;width:2400px;height:2400px;background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:60px 60px;background-position:0 0}
+#ln{position:absolute;inset:0;pointer-events:none}
+.n{position:absolute;width:48px;height:48px;display:grid;place-items:center;background:var(--node);border:0;font:700 11px "Silkscreen",monospace;cursor:grab;touch-action:none;user-select:none;padding:0;text-align:center;overflow:hidden}
+.n.sel{background:var(--acc);color:var(--accink)}
+.n.q-square{border-radius:4px}.n.q-rsquare{border-radius:14px}.n.q-circle{border-radius:50%}
+.n.q-diamond{clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.n.q-hexagon{clip-path:polygon(25% 3%,75% 3%,100% 50%,75% 97%,25% 97%,0 50%)}
+.n.q-octagon{clip-path:polygon(30% 0,70% 0,100% 30%,100% 70%,70% 100%,30% 100%,0 70%,0 30%)}
+aside{width:min(440px,42vw);flex:none;overflow:auto;background:var(--pan);border-left:1px solid var(--line);padding:12px;display:flex;flex-direction:column;gap:10px}
+label{display:block;color:var(--mut);font-size:12px;margin-bottom:2px}
+.row{display:flex;gap:6px;align-items:center;margin-bottom:6px}.row>*{min-width:0}
+.sec{border-top:1px solid var(--line);padding-top:8px}.sec b{display:block;margin-bottom:6px}
+.hint{color:var(--mut);font-size:12px}
+dialog{background:var(--pan);color:var(--ink);border:1px solid var(--line);border-radius:10px;width:min(720px,94vw);padding:14px}
+dialog::backdrop{background:rgba(0,0,0,.5)}dialog textarea{height:50vh;font:12px/1.4 ui-monospace,Menlo,monospace;white-space:pre}
+main{position:relative}
+#pvw{position:absolute;inset:0;z-index:5;display:flex;background:#1a1a1a;color:#e8e8e8}
+#pvw[hidden],#pvdet[hidden],#pvtip[hidden]{display:none}
+#pvside{width:200px;flex:none;background:#2a2a2a;border-right:2px solid #0d0d0d;padding:12px;display:flex;flex-direction:column;gap:10px}
+#pvside button{background:#3a3a3a;color:#e8e8e8;border-color:#111}#pvside .hint,#pvside p{color:#9a9a9a;font-size:12px;margin:0}
+.pvch{display:flex;align-items:center;gap:8px;padding:8px;background:#3a3a3a;border:2px solid #e0b341;font:700 12px "Silkscreen",monospace;word-break:break-word}
+.pvch span{display:grid;place-items:center;width:30px;height:30px;background:#1f1f1f;border:2px solid #888;flex:none}
+#pvmap{flex:1;overflow:auto;background:#1a1a1a radial-gradient(#2a2a2a 1px,transparent 1px);background-size:24px 24px}
+#pvcv{position:relative}
+.pq{position:absolute;width:52px;height:52px;background:var(--bc);cursor:pointer}
+.pq i{position:absolute;inset:3px;display:grid;place-items:center;background:hsl(var(--h),32%,20%);font:700 12px "Silkscreen",monospace;color:#f0f0f0;font-style:normal}
+.pq.st-done{--bc:#55d455}.pq.st-avail{--bc:#e8e8e8}.pq.st-lock{--bc:#4a4a4a}.pq.st-lock i{opacity:.5}.pq:hover{filter:brightness(1.3)}
+.pq.q-square,.pq i.q-square{border-radius:2px}.pq.q-rsquare,.pq i.q-rsquare{border-radius:14px}.pq.q-circle,.pq i.q-circle{border-radius:50%}
+.pq.q-diamond,.pq i.q-diamond{clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.pq.q-hexagon,.pq i.q-hexagon{clip-path:polygon(25% 3%,75% 3%,100% 50%,75% 97%,25% 97%,0 50%)}
+.pq.q-octagon,.pq i.q-octagon{clip-path:polygon(30% 0,70% 0,100% 30%,100% 70%,70% 100%,30% 100%,0 70%,0 30%)}
+#pvdet{position:absolute;inset:0;background:rgba(0,0,0,.55);display:grid;place-items:center;padding:16px}
+.pvbox{position:relative;width:min(520px,100%);max-height:100%;overflow:auto;background:#2b2b2b;border:3px solid #0d0d0d;box-shadow:inset 0 0 0 2px #555;padding:18px 20px}
+.pvbox h2{font:700 18px "Silkscreen",monospace;color:#e0b341;margin:0 28px 4px 0}.pvbox h3{font:700 12px "Silkscreen",monospace;color:#9a9a9a;margin:14px 0 4px}
+.pvbox .sub{color:#aaa;font-style:italic;margin-bottom:8px}.pvbox p{color:#ddd;margin:6px 0}.pvbox .ln{padding:3px 0}.pvbox .gold{color:#f5c84c}.pvbox .lk{color:#ff8a80;margin-top:14px}.pvbox .pri{margin-top:14px}
+.pvx{position:absolute;top:8px;right:8px;background:#3a3a3a;color:#e8e8e8;border-color:#111}
+#pvtip{position:fixed;z-index:9;pointer-events:none;background:#16001f;border:2px solid #3b0f6b;padding:5px 8px;font-size:13px;max-width:260px}#pvtip span{color:#aaa}
+@media(max-width:760px){#pvw{flex-direction:column}#pvside{width:auto;flex-direction:row;flex-wrap:wrap;align-items:center;border-right:0;border-bottom:2px solid #0d0d0d}main{flex-direction:column}aside{width:100%;height:42%;border-left:0;border-top:1px solid var(--line)}}
+</style></head><body>
+<header>
+<h1>Questwright</h1>
+<button class="pri" id="add">Add quest</button>
+<button id="link">Link mode</button>
+<button id="pv">Preview in game</button>
+<button id="exp" class="pri">Export SNBT</button>
+<button id="rst" class="del">Clear</button>
+<span class="hint" id="msg">Drag quests to move them. Select one to edit.</span>
+</header>
+<main>
+<div id="wrap"><div id="cv"><svg id="ln" width="2400" height="2400"></svg></div></div>
+<aside id="pn"></aside>
+<div id="pvw" hidden><div id="pvside"></div><div id="pvmap"><div id="pvcv"></div></div><div id="pvdet" hidden></div><div id="pvtip" hidden></div></div>
+</main>
+<dialog id="dlg">
+<p><b>Chapter file</b> <span class="hint" id="fn"></span></p>
+<textarea id="out" readonly></textarea>
+<div class="row" style="margin-top:8px"><button class="pri" id="cp">Copy to clipboard</button><button id="cl">Close</button></div>
+<p class="hint">Save as <code>config/ftbquests/quests/chapters/&lt;filename&gt;.snbt</code> in your instance (or the server’s config folder), then run <code>/ftbquests reload</code> or restart. Back up your quests first.</p>
+</dialog>
+<script>
+const U=60,O=1200,KEY="questwright-v1";
+const TT={item:"Item",kill:"Kill entity",checkmark:"Checkmark",xp:"XP levels",advancement:"Advancement",dimension:"Dimension"};
+const RT={item:"Item",xp:"XP points",xp_levels:"XP levels",command:"Command"};
+const SH=["square","rsquare","circle","diamond","hexagon","octagon"];
+let S={ch:{title:"My chapter",filename:"my_chapter",icon:"minecraft:grass_block"},qs:[],sel:null};
+let link=false;
+try{const r=localStorage.getItem(KEY);if(r)S=JSON.parse(r)}catch(e){}
+S.sel=S.sel||null;
+const $=id=>document.getElementById(id);
+const hid=()=>Array.from(crypto.getRandomValues(new Uint8Array(8)),b=>b.toString(16).padStart(2,"0")).join("").toUpperCase();
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const find=id=>S.qs.find(q=>q.id===id);
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function toast(t){$("msg").textContent=t}
+
+function drawCanvas(){
+ const cv=$("cv");cv.querySelectorAll(".n").forEach(n=>n.remove());
+ const ln=$("ln");let svg="";
+ S.qs.forEach(q=>q.deps.forEach(d=>{const p=find(d);if(!p)return;
+  const x1=O+p.x*U,y1=O+p.y*U,x2=O+q.x*U,y2=O+q.y*U,a=Math.atan2(y2-y1,x2-x1),mx=(x1+x2)/2,my=(y1+y2)/2;
+  svg+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--mut)" stroke-width="2"/><path d="M${mx} ${my}l${-9*Math.cos(a-.45)} ${-9*Math.sin(a-.45)}M${mx} ${my}l${-9*Math.cos(a+.45)} ${-9*Math.sin(a+.45)}" stroke="var(--mut)" stroke-width="2" fill="none"/>`}));
+ ln.innerHTML=svg;
+ S.qs.forEach(q=>{
+  const b=document.createElement("button");b.className=`n q-${q.shape}${q.id===S.sel?" sel":""}`;
+  b.style.left=O+q.x*U-24+"px";b.style.top=O+q.y*U-24+"px";
+  b.textContent=(q.title||"?").trim().slice(0,2).toUpperCase();b.title=q.title||"Untitled quest";
+  b.onpointerdown=e=>startDrag(e,q,b);cv.appendChild(b)});
+}
+let drag=null;
+function startDrag(e,q,b){
+ e.preventDefault();
+ if(link&&S.sel&&S.sel!==q.id){
+  const i=q.deps.indexOf(S.sel);
+  toggleDep(S.sel,q);
+  save();drawCanvas();return}
+ const moved=S.sel!==q.id;S.sel=q.id;
+ drag={q,sx:e.clientX,sy:e.clientY,ox:q.x,oy:q.y,moved:false};
+ b.setPointerCapture(e.pointerId);
+ b.onpointermove=ev=>{if(!drag)return;const dx=ev.clientX-drag.sx,dy=ev.clientY-drag.sy;
+  if(Math.abs(dx)+Math.abs(dy)>3)drag.moved=true;
+  q.x=Math.round((drag.ox+dx/U)*2)/2;q.y=Math.round((drag.oy+dy/U)*2)/2;
+  b.style.left=O+q.x*U-24+"px";b.style.top=O+q.y*U-24+"px";drawLinesOnly()};
+ b.onpointerup=()=>{drag=null;save();drawCanvas();if(moved)panel()};
+ if(moved)panel();drawCanvas.skip=true;
+ document.querySelectorAll(".n").forEach(n=>n.classList.remove("sel"));b.classList.add("sel");
+}
+function drawLinesOnly(){const c=S.sel;const keep=document.activeElement;
+ const nodes=$("cv").querySelectorAll(".n");const html=[];
+ S.qs.forEach(q=>q.deps.forEach(d=>{const p=find(d);if(!p)return;html.push(`<line x1="${O+p.x*U}" y1="${O+p.y*U}" x2="${O+q.x*U}" y2="${O+q.y*U}" stroke="var(--mut)" stroke-width="2"/>`)}));
+ $("ln").innerHTML=html.join("")}
+function createsCycle(from,to){ // adding from -> to; cycle if from reachable from 'to' dependents... check to is ancestor of from
+ const seen=new Set();const walk=id=>{if(id===to)return true;if(seen.has(id))return false;seen.add(id);const q=find(id);return q?q.deps.some(walk):false};return walk(from)}
+
+function opt(map,cur){return Object.entries(map).map(([k,v])=>`<option value="${k}"${k===cur?" selected":""}>${v}</option>`).join("")}
+function panel(){
+ const q=find(S.sel);let h=`<div class="sec" style="border:0;padding:0"><b>Chapter</b>
+ <label>Title</label><input data-c="title" value="${esc(S.ch.title)}">
+ <div class="row"><div><label>File name</label><input data-c="filename" value="${esc(S.ch.filename)}"></div><div><label>Icon item ID</label><input data-c="icon" value="${esc(S.ch.icon)}"></div></div></div>`;
+ h+=aiChapter()+keyBox();
+ if(!q){h+=`<p class="hint">No quest selected. Press “Add quest”, or click a quest on the grid. In Link mode, select a quest first, then click another to make it depend on the first. Click again to remove the link.</p>`}
+ else{
+  h+=`<div class="sec"><b>Quest</b><label>Title</label><input data-q="title" value="${esc(q.title)}">
+  <label>Subtitle</label><input data-q="sub" value="${esc(q.sub)}">
+  <label>Description (one paragraph per line)</label><textarea data-q="desc" rows="3">${esc(q.desc)}</textarea>
+  <div class="row"><div><label>Shape</label><select data-q="shape">${SH.map(s=>`<option${s===q.shape?" selected":""}>${s}</option>`).join("")}</select></div><div><label>Icon item ID</label><input data-q="icon" value="${esc(q.icon)}" placeholder="minecraft:stone"></div></div>
+  <div class="row"><div><label>X</label><input type="number" step="0.5" data-q="x" value="${q.x}"></div><div><label>Y</label><input type="number" step="0.5" data-q="y" value="${q.y}"></div></div></div>`;
+  h+=aiQuest();
+  h+=`<div class="sec"><b>Tasks</b>`+q.tasks.map((t,i)=>`<div class="row"><select data-t="${i}" data-k="type" style="width:42%">${opt(TT,t.type)}</select>${t.type==="checkmark"?"":`<input data-t="${i}" data-k="val" value="${esc(t.val)}" placeholder="${t.type==="xp"?"levels":"namespace:id"}">`}${["item","kill"].includes(t.type)?`<input type="number" min="1" data-t="${i}" data-k="count" value="${t.count}" style="width:60px">`:""}<button class="del" data-dt="${i}" title="Remove task">×</button></div>`).join("")+`<button id="at">Add task</button></div>`;
+  h+=`<div class="sec"><b>Rewards</b>`+q.rewards.map((r,i)=>`<div class="row"><select data-r="${i}" data-k="type" style="width:42%">${opt(RT,r.type)}</select><input data-r="${i}" data-k="val" value="${esc(r.val)}" placeholder="${r.type==="item"?"namespace:id":r.type==="command"?"/give @p minecraft:apple":"amount"}">${r.type==="item"?`<input type="number" min="1" data-r="${i}" data-k="count" value="${r.count}" style="width:60px">`:""}<button class="del" data-dr="${i}" title="Remove reward">×</button></div>`).join("")+`<button id="ar">Add reward</button></div>`;
+  const ds=q.deps.map(d=>find(d)).filter(Boolean);
+  h+=`<div class="sec"><b>Depends on</b>${ds.length?ds.map(d=>`<div class="row"><span style="flex:1">${esc(d.title||"Untitled")}</span><button data-ud="${d.id}">Unlink</button></div>`).join(""):'<span class="hint">Nothing. This quest is available from the start.</span>'}<select data-adddep style="margin-top:6px"><option value="">Add prerequisite…</option>${S.qs.filter(o=>o!==q&&!q.deps.includes(o.id)&&!createsCycle(o.id,q.id)).map(o=>`<option value="${o.id}">${esc(o.title||"Untitled")}</option>`).join("")}</select></div>
+  <button class="del" id="dq">Delete quest</button>`}
+ $("pn").innerHTML=h;
+}
+$("pn").addEventListener("input",e=>{
+ const t=e.target,q=find(S.sel);
+ if(t.dataset.adddep!==undefined){if(t.value&&q)toggleDep(t.value,q);return}
+ if(t.dataset.ai!==undefined){aiText[t.dataset.ai]=t.value;return}
+ if(t.dataset.c){S.ch[t.dataset.c]=t.value}
+ else if(q&&t.dataset.q){const k=t.dataset.q;q[k]=["x","y"].includes(k)?(parseFloat(t.value)||0):t.value;if(k==="shape"||k==="x"||k==="y"||k==="title")drawCanvas()}
+ else if(q&&t.dataset.t!==undefined){const o=q.tasks[+t.dataset.t];o[t.dataset.k]=t.dataset.k==="count"?Math.max(1,+t.value||1):t.value;if(t.dataset.k==="type"){o.val="";panel()}}
+ else if(q&&t.dataset.r!==undefined){const o=q.rewards[+t.dataset.r];o[t.dataset.k]=t.dataset.k==="count"?Math.max(1,+t.value||1):t.value;if(t.dataset.k==="type"){o.val="";panel()}}
+ save()});
+$("pn").addEventListener("click",e=>{
+ const t=e.target,q=find(S.sel),d=t.dataset;if(t.id==="keys"){const v=$("keyin").value.trim();if(!v){toast("Paste your API key first.");return}try{localStorage.setItem(KK,v)}catch(e){}sample={json:keyJson};aiMode="key";toast("Key saved. AI assist is on.");panel();return}if(t.id==="keyx"){try{localStorage.removeItem(KK)}catch(e){}sample=null;aiMode="";panel();return}if(t.id==="aic")return aiChapterRun();if(!q)return;if(t.id==="aiq")return aiQuestRun();
+ if(t.id==="at"){q.tasks.push({type:"item",val:"minecraft:dirt",count:1})}
+ else if(t.id==="ar"){q.rewards.push({type:"item",val:"minecraft:apple",count:1})}
+ else if(d.dt!==undefined){q.tasks.splice(+d.dt,1)}
+ else if(d.dr!==undefined){q.rewards.splice(+d.dr,1)}
+ else if(d.ud){q.deps=q.deps.filter(x=>x!==d.ud);drawCanvas()}
+ else if(t.id==="dq"){S.qs=S.qs.filter(x=>x!==q);S.qs.forEach(o=>o.deps=o.deps.filter(x=>x!==q.id));S.sel=null;drawCanvas()}
+ else return;
+ save();panel()});
+
+$("add").onclick=()=>{
+ const w=$("wrap");const x=Math.round(((w.scrollLeft+w.clientWidth/2-O)/U)*2)/2,y=Math.round(((w.scrollTop+w.clientHeight/2-O)/U)*2)/2;
+ let px=x,py=y;while(S.qs.some(q=>q.x===px&&q.y===py))px+=1;
+ const q={id:hid(),x:px,y:py,title:"New quest",sub:"",desc:"",shape:"square",icon:"",deps:[],tasks:[{type:"checkmark",val:"",count:1}],rewards:[]};
+ S.qs.push(q);S.sel=q.id;save();drawCanvas();panel()};
+$("link").onclick=e=>{link=!link;e.target.classList.toggle("on",link);toast(link?"Link mode: select the prerequisite quest first, then click each quest that depends on it.":"Drag quests to move them. Select one to edit.")};
+let rstT=null;$("rst").onclick=e=>{const b=e.currentTarget;if(S.qs.length&&!rstT){b.textContent="Click again to delete all";rstT=setTimeout(()=>{rstT=null;b.textContent="Clear"},3000);return}clearTimeout(rstT);rstT=null;b.textContent="Clear";S.qs=[];S.sel=null;pvDone.clear();save();drawCanvas();panel();if(pvOn)pvRender();toast("All quests cleared.")};
+$("wrap").addEventListener("pointerdown",e=>{if(e.target.id==="cv"||e.target.id==="ln"){S.sel=null;drawCanvas();panel()}});
+
+const s=v=>JSON.stringify(String(v));
+const L=n=>`${Math.max(1,parseInt(n)||1)}L`;
+function snbt(){
+ const T="\t";let o=`{\n${T}id: "${S.ch.id||(S.ch.id=hid())}"\n${T}group: ""\n${T}order_index: 0\n${T}filename: ${s(S.ch.filename||"chapter")}\n${T}title: ${s(S.ch.title)}\n${T}icon: ${s(S.ch.icon||"minecraft:grass_block")}\n${T}default_quest_shape: ""\n${T}default_hide_dependency_lines: false\n${T}quests: [`;
+ o+=S.qs.map(q=>{
+  let b=`{\n${T}${T}${T}x: ${q.x.toFixed(1)}d\n${T}${T}${T}y: ${q.y.toFixed(1)}d\n`;
+  if(q.shape!=="square")b+=`${T}${T}${T}shape: ${s(q.shape)}\n`;
+  b+=`${T}${T}${T}id: ${s(q.id)}\n`;
+  if(q.title)b+=`${T}${T}${T}title: ${s(q.title)}\n`;
+  if(q.sub)b+=`${T}${T}${T}subtitle: ${s(q.sub)}\n`;
+  const ds=q.desc.split("\n").filter(x=>x.trim());
+  if(ds.length)b+=`${T}${T}${T}description: [${ds.map(s).join(", ")}]\n`;
+  if(q.icon)b+=`${T}${T}${T}icon: ${s(q.icon)}\n`;
+  if(q.deps.length)b+=`${T}${T}${T}dependencies: [${q.deps.map(s).join(", ")}]\n`;
+  b+=`${T}${T}${T}tasks: [${q.tasks.map(t=>{let f=[`id: ${s(hid())}`,`type: ${s(t.type)}`];
+   if(t.type==="item"){f.push(`item: ${s(t.val||"minecraft:dirt")}`);if(t.count>1)f.push(`count: ${L(t.count)}`)}
+   else if(t.type==="kill"){f.push(`entity: ${s(t.val||"minecraft:zombie")}`,`value: ${L(t.count)}`)}
+   else if(t.type==="xp")f.push(`value: ${L(t.val)}`);
+   else if(t.type==="advancement")f.push(`advancement: ${s(t.val)}`,`criterion: ""`);
+   else if(t.type==="dimension")f.push(`dimension: ${s(t.val||"minecraft:the_nether")}`);
+   return `{\n${T.repeat(5)}${f.join("\n"+T.repeat(5))}\n${T.repeat(4)}}`}).join(" ")}]\n`;
+  if(q.rewards.length)b+=`${T}${T}${T}rewards: [${q.rewards.map(r=>{let f=[`id: ${s(hid())}`,`type: ${s(r.type)}`];
+   if(r.type==="item"){f.push(`item: ${s(r.val||"minecraft:apple")}`);if(r.count>1)f.push(`count: ${parseInt(r.count)}`)}
+   else if(r.type==="xp")f.push(`xp: ${parseInt(r.val)||1}`);
+   else if(r.type==="xp_levels")f.push(`xp_levels: ${parseInt(r.val)||1}`);
+   else if(r.type==="command")f.push(`command: ${s(r.val)}`);
+   return `{\n${T.repeat(5)}${f.join("\n"+T.repeat(5))}\n${T.repeat(4)}}`}).join(" ")}]\n`;
+  return b+`${T}${T}}`}).join(" ");
+ return o+`]\n}\n`}
+$("exp").onclick=()=>{$("out").value=snbt();$("fn").textContent=(S.ch.filename||"chapter")+".snbt";$("dlg").showModal()};
+$("cl").onclick=()=>$("dlg").close();
+$("cp").onclick=async()=>{const t=$("out");try{await navigator.clipboard.writeText(t.value)}catch(e){t.select();document.execCommand("copy")}$("cp").textContent="Copied";setTimeout(()=>$("cp").textContent="Copy to clipboard",1500)};
+
+let pvOn=false;const pvDone=new Set();
+const pretty=id=>String(id||"").split(":").pop().replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase())||"Something";
+function taskTxt(t){const n=t.count>1?t.count+"x ":"";switch(t.type){case"item":return n+pretty(t.val||"minecraft:dirt");case"kill":return "Kill "+n+pretty(t.val||"minecraft:zombie");case"xp":return "Spend "+(parseInt(t.val)||1)+" XP levels";case"advancement":return "Achieve "+pretty(t.val);case"dimension":return "Enter "+pretty(t.val||"the_nether");default:return "Check this box when you are done"}}
+function rewTxt(r){switch(r.type){case"item":return (r.count>1?r.count+"x ":"")+pretty(r.val||"minecraft:apple");case"xp":return (parseInt(r.val)||1)+" XP";case"xp_levels":return (parseInt(r.val)||1)+" XP levels";default:return "Command: "+(r.val||"")}}
+const stOf=q=>pvDone.has(q.id)?"done":q.deps.every(d=>!find(d)||pvDone.has(d))?"avail":"lock";
+const hue=s=>{let h=0;for(const c of String(s))h=(h*31+c.charCodeAt(0))%360;return h};
+const icId=q=>q.icon||(q.tasks.find(t=>t.type==="item")||{}).val||q.title||"";
+const icTxt=q=>pretty(icId(q)||"?").replace(/[^A-Za-z0-9 ]/g,"").split(" ").filter(Boolean).slice(0,2).map(w=>w[0]).join("")||"?";
+function pvRender(){
+ const done=S.qs.filter(q=>pvDone.has(q.id)).length;
+ $("pvside").innerHTML=`<div class="pvch"><span>${esc(((S.ch.icon||"").split(":").pop()||"?")[0].toUpperCase())}</span>${esc(S.ch.title)}</div><p>${done} of ${S.qs.length} quests complete</p><button id="pvrs">Reset progress</button><p>Click a quest to open it, then complete it to unlock the next ones. Item icons show as letters here; the game draws the real textures.</p>`;
+ if(!S.qs.length){$("pvcv").style.cssText="";$("pvcv").innerHTML='<p style="padding:24px;color:#9a9a9a">Add some quests in the editor, then come back to preview them.</p>';return}
+ const P=70,xs=S.qs.map(q=>q.x),ys=S.qs.map(q=>q.y),mx=Math.min(0,...xs),my=Math.min(0,...ys),W=(Math.max(0,...xs)-mx)*P+180,H=(Math.max(0,...ys)-my)*P+180,px=q=>(q.x-mx)*P+90,py=q=>(q.y-my)*P+90;
+ let h=`<svg width="${W}" height="${H}" style="position:absolute;left:0;top:0">`;
+ S.qs.forEach(q=>q.deps.forEach(d=>{const p=find(d);if(p)h+=`<line x1="${px(p)}" y1="${py(p)}" x2="${px(q)}" y2="${py(q)}" stroke="${pvDone.has(d)?"#cfcfcf":"#666"}" stroke-width="3"/>`}));
+ h+="</svg>"+S.qs.map(q=>`<div class="pq q-${q.shape} st-${stOf(q)}" data-id="${q.id}" style="left:${px(q)-26}px;top:${py(q)-26}px"><i class="q-${q.shape}" style="--h:${hue(icId(q))}">${esc(icTxt(q))}</i></div>`).join("");
+ $("pvcv").style.cssText=`width:${W}px;height:${H}px`;$("pvcv").innerHTML=h}
+function pvOpen(id){const q=find(id);if(!q)return;const st=stOf(q);
+ const dsc=q.desc.split("\n").filter(x=>x.trim()).map(x=>`<p>${esc(x)}</p>`).join("");
+ const need=q.deps.map(find).filter(o=>o&&!pvDone.has(o.id)).map(o=>esc(o.title||"Untitled")).join(", ");
+ $("pvdet").innerHTML=`<div class="pvbox"><button class="pvx" id="pvclose" aria-label="Close">×</button><h2>${esc(q.title||"Untitled quest")}</h2>${q.sub?`<div class="sub">${esc(q.sub)}</div>`:""}${dsc}<h3>Tasks</h3>${q.tasks.map(t=>`<div class="ln">${st==="done"?"☑":"☐"} ${esc(taskTxt(t))}</div>`).join("")}${q.rewards.length?"<h3>Rewards</h3>"+q.rewards.map(r=>`<div class="ln gold">★ ${esc(rewTxt(r))}</div>`).join(""):""}${st==="lock"?`<div class="lk">Locked. Finish first: ${need}</div>`:`<button class="pri" id="pvdn" data-id="${q.id}">${st==="done"?"Mark incomplete":"Complete quest (simulate)"}</button>`}</div>`;
+ $("pvdet").hidden=false}
+$("pv").onclick=()=>{pvOn=!pvOn;$("pvw").hidden=!pvOn;$("pv").classList.toggle("on",pvOn);$("pv").textContent=pvOn?"Back to editor":"Preview in game";if(pvOn){$("pvdet").hidden=true;pvRender()}};
+$("pvw").addEventListener("click",e=>{const t=e.target,pq=t.closest(".pq");
+ if(pq)return pvOpen(pq.dataset.id);
+ if(t.id==="pvclose"||t.id==="pvdet")$("pvdet").hidden=true;
+ else if(t.id==="pvdn"){const i=t.dataset.id;pvDone.has(i)?pvDone.delete(i):pvDone.add(i);pvRender();pvOpen(i)}
+ else if(t.id==="pvrs"){pvDone.clear();pvRender();$("pvdet").hidden=true}});
+$("pvw").addEventListener("pointermove",e=>{const pq=e.target.closest&&e.target.closest(".pq"),tp=$("pvtip");if(!pq){tp.hidden=true;return}const q=find(pq.dataset.id);if(!q)return;tp.innerHTML=`<b>${esc(q.title||"Untitled quest")}</b>${q.sub?`<br><span>${esc(q.sub)}</span>`:""}`;tp.hidden=false;tp.style.left=e.clientX+14+"px";tp.style.top=e.clientY+14+"px"});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&pvOn)$("pvdet").hidden=true});
+function toggleDep(fromId,q){const i=q.deps.indexOf(fromId);
+ if(i>=0){q.deps.splice(i,1);toast("Link removed.")}
+ else if(createsCycle(fromId,q.id))toast("That link would create a loop.");
+ else{q.deps.push(fromId);toast(`“${(find(fromId)||{}).title||"Quest"}” is now a prerequisite of “${q.title||"Untitled"}”.`)}
+ save();drawCanvas();panel()}
+const aiText={q:"",c:""};let sample=null,busy=false;
+const KK="questwright-key";
+const getKey=()=>{try{return localStorage.getItem(KK)||""}catch(e){return ""}};
+async function keyJson(prompt){
+ const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":getKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-5-5",max_tokens:4000,messages:[{role:"user",content:prompt}]})});
+ if(!r.ok){const e=new Error("api");e.code=r.status===401?"bad_key":r.status===429?"rate_limited":"api";throw e}
+ const d=await r.json();const t=(d.content||[]).map(c=>c.text||"").join("").replace(/```json|```/g,"").trim();
+ return JSON.parse(t.slice(t.indexOf("{"),t.lastIndexOf("}")+1))}
+let aiMode="";
+(async()=>{let waited=false;try{if(window.claude){waited=true;sample=await claude.use("sample")}}catch(e){}
+ if(sample)aiMode="claude";else if(!window.claude&&getKey()){sample={json:keyJson};aiMode="key"}
+ if(waited)panel()})();
+function keyBox(){
+ if(aiMode==="claude")return "";
+ if(window.claude&&aiMode!=="key")return `<div class="sec"><b>AI assist</b><p class="hint">AI assist isn’t available in this view.</p></div>`;
+ return `<div class="sec"><b>${aiMode?"AI key":"Turn on AI assist"}</b>${aiMode?`<p class="hint">Using your Anthropic API key, stored in this browser only.</p><button class="del" id="keyx">Remove key</button>`:`<label>Anthropic API key</label><input type="password" id="keyin" placeholder="sk-ant-…" autocomplete="off"><div class="row" style="margin-top:6px"><button class="pri" id="keys">Save key</button></div><p class="hint">The key is stored in this browser only and is sent only to Anthropic when you use an AI button. Anyone using this computer could read it, so don’t save it on a shared device, and set a spend limit on the key in the Anthropic Console.</p>`}</div>`}
+function aiBox(k,title,ph,btn,id){
+ if(!sample)return "";
+ return `<div class="sec"><b>${title}</b><textarea data-ai="${k}" rows="3" placeholder="${ph}">${esc(aiText[k])}</textarea><div class="row" style="margin-top:6px"><button class="pri" id="${id}"${busy?" disabled":""}>${busy?"Thinking…":btn}</button></div></div>`}
+const aiChapter=()=>aiBox("c","Generate a questline with AI","e.g. 8 quests taking a player from wood tools to iron gear and a first trip to the Nether","Generate quests","aic");
+const aiQuest=()=>aiBox("q","Write this quest with AI","e.g. make this a mining quest that rewards some iron, with a friendly description","Write quest","aiq");
+const RULES=`You write quests for the Minecraft mod FTB Quests. Reply with JSON only, no markdown fences. Task types: item (val=item id, count), kill (val=entity id, count), checkmark (no val), xp (val=levels), advancement (val=advancement id), dimension (val=dimension id). Reward types: item (val=item id, count), xp (val=points), xp_levels (val=levels), command (val=a command starting with /). Use real item IDs such as minecraft:iron_ingot, and IDs from a mod only if the request names that mod. Descriptions are short, friendly, in second person, paragraphs separated by \\n. Keep rewards proportionate to the effort.`;
+const clean=(a,M,def)=>(Array.isArray(a)?a:[]).slice(0,8).map(x=>({type:M[x&&x.type]?x.type:def,val:String((x&&x.val)??""),count:Math.max(1,parseInt(x&&x.count)||1)}));
+async function run(prompt,apply){
+ if(busy||!sample)return;busy=true;panel();toast("Asking Claude…");
+ try{const r=await sample.json(prompt);apply(r);save();drawCanvas();toast("Done. Review the result and tweak anything.")}
+ catch(e){toast(e&&e.code==="bad_key"?"Anthropic rejected that API key. Remove it and save it again.":e&&e.code==="not_granted"?"AI access was declined.":e&&e.code==="rate_limited"?"Rate limited. Wait a moment and try again.":"The AI reply couldn’t be used. Try rephrasing your request.")}
+ busy=false;panel()}
+function aiQuestRun(){const q=find(S.sel);const ask=aiText.q.trim()||"Improve this quest.";
+ run(`${RULES}\nChapter: ${S.ch.title}\nCurrent quest: ${JSON.stringify({title:q.title,sub:q.sub,desc:q.desc,tasks:q.tasks,rewards:q.rewards})}\nPrerequisites: ${q.deps.map(d=>(find(d)||{}).title).join(", ")||"none"}\nRequest: ${ask}\nReturn {"title":string,"sub":string,"desc":string,"tasks":[{"type":"","val":"","count":1}],"rewards":[{"type":"","val":"","count":1}]}`,r=>{
+  q.title=String(r.title||q.title);q.sub=String(r.sub??"");q.desc=String(r.desc??"");
+  const t=clean(r.tasks,TT,"item");if(t.length)q.tasks=t;q.rewards=clean(r.rewards,RT,"item")})}
+function aiChapterRun(){const ask=aiText.c.trim();if(!ask){toast("Describe the questline first.");return}
+ run(`${RULES}\nChapter: ${S.ch.title}\nRequest: ${ask}\nLay quests out on a grid with integer x (right) and y (down), about 2 apart, flowing left to right with branches where it makes sense. "deps" lists the keys of prerequisite quests. Shapes: ${SH.join(", ")}. Return {"quests":[{"key":"a","title":"","sub":"","desc":"","shape":"square","x":0,"y":0,"deps":[],"tasks":[{"type":"","val":"","count":1}],"rewards":[{"type":"","val":"","count":1}]}]} with at most 20 quests.`,r=>{
+  const ls=(r.quests||[]).slice(0,20);if(!ls.length)throw 0;
+  const ox=S.qs.length?Math.max(...S.qs.map(q=>q.x))+2:0,m={};
+  const nq=ls.map(o=>{const q={id:hid(),x:(parseFloat(o.x)||0)+ox,y:parseFloat(o.y)||0,title:String(o.title||"Quest"),sub:String(o.sub||""),desc:String(o.desc||""),shape:SH.includes(o.shape)?o.shape:"square",icon:"",deps:[],tasks:clean(o.tasks,TT,"item"),rewards:clean(o.rewards,RT,"item")};if(!q.tasks.length)q.tasks=[{type:"checkmark",val:"",count:1}];m[o.key]=q;return[q,o]});
+  nq.forEach(([q])=>S.qs.push(q));
+  nq.forEach(([q,o])=>(o.deps||[]).forEach(k=>{const p=m[k];if(p&&p!==q&&!q.deps.includes(p.id)&&!createsCycle(p.id,q.id))q.deps.push(p.id)}));
+  S.sel=nq[0][0].id})}
+drawCanvas();panel();
+const w=$("wrap");w.scrollLeft=O-w.clientWidth/2+100;w.scrollTop=O-w.clientHeight/2+100;
+</script></body></html>
