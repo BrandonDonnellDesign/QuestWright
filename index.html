@@ -155,7 +155,7 @@ function panel(){
 }
 $("pn").addEventListener("input",e=>{
  const t=e.target,q=find(S.sel);
- if(t.dataset.kp!==undefined){kd[t.dataset.kp]=t.value;if(t.dataset.kp==="prov"){kd.model=DEF[t.value]||"";panel()}return}
+ if(t.dataset.kp!==undefined){const k=t.dataset.kp;if(k==="model"&&t.tagName==="SELECT"){if(t.value==="__other"){kd.oth=true;kd.model=""}else{kd.oth=false;kd.model=t.value}panel();return}kd[k]=t.value;if(k==="prov"){kd.model=DEF[t.value]||"";kd.oth=false;panel()}return}
  if(t.dataset.adddep!==undefined){if(t.value&&q)toggleDep(t.value,q);return}
  if(t.dataset.ai!==undefined){aiText[t.dataset.ai]=t.value;return}
  if(t.dataset.c){S.ch[t.dataset.c]=t.value}
@@ -260,6 +260,11 @@ function toggleDep(fromId,q){const i=q.deps.indexOf(fromId);
 const aiText={q:"",c:""};let sample=null,busy=false;
 const PV={anthropic:"Anthropic (Claude)",openai:"OpenAI",gemini:"Google Gemini",openrouter:"OpenRouter",custom:"Other (OpenAI-compatible)"};
 const DEF={anthropic:"claude-sonnet-5-5",openai:"gpt-4o",gemini:"gemini-2.5-flash",openrouter:"anthropic/claude-sonnet-4.5",custom:""};
+const MODELS={anthropic:["claude-opus-5-5","claude-sonnet-5-5","claude-haiku-5-5"],openai:["gpt-4o","gpt-4o-mini","gpt-4.1","gpt-4.1-mini"],gemini:["gemini-2.5-pro","gemini-2.5-flash","gemini-2.0-flash"],openrouter:["anthropic/claude-sonnet-4.5","openai/gpt-4o","google/gemini-2.5-flash","meta-llama/llama-3.3-70b-instruct"]};
+function modelPick(){
+ if(kd.prov==="custom")return `<input data-kp="model" value="${esc(kd.model)}" placeholder="model name">`;
+ const L=MODELS[kd.prov]||[];
+ return `<select data-kp="model">${L.map(m=>`<option${!kd.oth&&m===kd.model?" selected":""}>${esc(m)}</option>`).join("")}<option value="__other"${kd.oth?" selected":""}>Other (type a name)</option></select>${kd.oth?`<input data-kp="model" value="${esc(kd.model)}" placeholder="model name" style="margin-top:6px">`:""}`}
 const CFGK="questwright-ai";let kd={prov:"anthropic",model:DEF.anthropic,base:"",key:""};
 function getCfg(){try{const r=localStorage.getItem(CFGK);if(r)return JSON.parse(r);const k=localStorage.getItem("questwright-key");if(k)return{prov:"anthropic",key:k,model:DEF.anthropic}}catch(e){}return null}
 async function keyJson(prompt){
@@ -281,7 +286,7 @@ function keyBox(){
  if(window.claude&&aiMode!=="key")return `<div class="sec"><b>AI assist</b><p class="hint">AI assist isn’t available in this view.</p></div>`;
  const c=aiMode==="key"?getCfg():null;
  if(c)return `<div class="sec"><b>AI provider</b><p class="hint">Using ${esc(PV[c.prov]||c.prov)}, model ${esc(c.model)}. The key is stored in this browser only.</p><button class="del" id="keyx">Remove key</button></div>`;
- return `<div class="sec"><b>Turn on AI assist</b><label>Provider</label><select data-kp="prov">${opt(PV,kd.prov)}</select><label style="margin-top:6px">Model</label><input data-kp="model" value="${esc(kd.model)}" placeholder="model name">${kd.prov==="custom"?`<label style="margin-top:6px">Base URL</label><input data-kp="base" value="${esc(kd.base)}" placeholder="https://api.groq.com/openai/v1">`:""}<label style="margin-top:6px">API key${kd.prov==="custom"?" (leave empty if none)":""}</label><input type="password" data-kp="key" value="${esc(kd.key)}" autocomplete="off"><div class="row" style="margin-top:6px"><button class="pri" id="keys">Save key</button></div><p class="hint">The key is stored in this browser only and is sent only to the provider you pick. Anyone using this computer could read it, so don’t save it on a shared device, and set a spend limit on the key. Model names change, so edit the model box if a provider says it can’t find the model. If a provider blocks requests from web pages, the AI buttons will fail; OpenRouter is a good fallback.</p></div>`}
+ return `<div class="sec"><b>Turn on AI assist</b><label>Provider</label><select data-kp="prov">${opt(PV,kd.prov)}</select><label style="margin-top:6px">Model</label>${modelPick()}${kd.prov==="custom"?`<label style="margin-top:6px">Base URL</label><input data-kp="base" value="${esc(kd.base)}" placeholder="https://api.groq.com/openai/v1">`:""}<label style="margin-top:6px">API key${kd.prov==="custom"?" (leave empty if none)":""}</label><input type="password" data-kp="key" value="${esc(kd.key)}" autocomplete="off"><div class="row" style="margin-top:6px"><button class="pri" id="keys">Save key</button></div><p class="hint">The key is stored in this browser only and is sent only to the provider you pick. Anyone using this computer could read it, so don’t save it on a shared device, and set a spend limit on the key. If your model isn’t listed, choose Other and type its name. If a provider blocks requests from web pages, the AI buttons will fail; OpenRouter is a good fallback.</p></div>`}
 function aiBox(k,title,ph,btn,id){
  if(!sample)return "";
  return `<div class="sec"><b>${title}</b><textarea data-ai="${k}" rows="3" placeholder="${ph}">${esc(aiText[k])}</textarea><div class="row" style="margin-top:6px"><button class="pri" id="${id}"${busy?" disabled":""}>${busy?"Thinking…":btn}</button></div></div>`}
