@@ -155,6 +155,7 @@ function panel(){
 }
 $("pn").addEventListener("input",e=>{
  const t=e.target,q=find(S.sel);
+ if(t.dataset.kp!==undefined){kd[t.dataset.kp]=t.value;if(t.dataset.kp==="prov"){kd.model=DEF[t.value]||"";panel()}return}
  if(t.dataset.adddep!==undefined){if(t.value&&q)toggleDep(t.value,q);return}
  if(t.dataset.ai!==undefined){aiText[t.dataset.ai]=t.value;return}
  if(t.dataset.c){S.ch[t.dataset.c]=t.value}
@@ -163,7 +164,13 @@ $("pn").addEventListener("input",e=>{
  else if(q&&t.dataset.r!==undefined){const o=q.rewards[+t.dataset.r];o[t.dataset.k]=t.dataset.k==="count"?Math.max(1,+t.value||1):t.value;if(t.dataset.k==="type"){o.val="";panel()}}
  save()});
 $("pn").addEventListener("click",e=>{
- const t=e.target,q=find(S.sel),d=t.dataset;if(t.id==="keys"){const v=$("keyin").value.trim();if(!v){toast("Paste your API key first.");return}try{localStorage.setItem(KK,v)}catch(e){}sample={json:keyJson};aiMode="key";toast("Key saved. AI assist is on.");panel();return}if(t.id==="keyx"){try{localStorage.removeItem(KK)}catch(e){}sample=null;aiMode="";panel();return}if(t.id==="aic")return aiChapterRun();if(!q)return;if(t.id==="aiq")return aiQuestRun();
+ const t=e.target,q=find(S.sel),d=t.dataset;if(t.id==="keys"){const m=(kd.model||"").trim(),k=(kd.key||"").trim(),b=(kd.base||"").trim();
+ if(!m){toast("Enter a model name.");return}
+ if(kd.prov==="custom"&&!b){toast("Enter the base URL.");return}
+ if(kd.prov!=="custom"&&!k){toast("Paste your API key first.");return}
+ try{localStorage.setItem(CFGK,JSON.stringify({prov:kd.prov,key:k,model:m,base:b}));localStorage.removeItem("questwright-key")}catch(e){}
+ kd.key="";sample={json:keyJson};aiMode="key";toast("Saved. AI assist is on.");panel();return}
+if(t.id==="keyx"){try{localStorage.removeItem(CFGK);localStorage.removeItem("questwright-key")}catch(e){}sample=null;aiMode="";panel();return}if(t.id==="aic")return aiChapterRun();if(!q)return;if(t.id==="aiq")return aiQuestRun();
  if(t.id==="at"){q.tasks.push({type:"item",val:"minecraft:dirt",count:1})}
  else if(t.id==="ar"){q.rewards.push({type:"item",val:"minecraft:apple",count:1})}
  else if(d.dt!==undefined){q.tasks.splice(+d.dt,1)}
@@ -251,21 +258,30 @@ function toggleDep(fromId,q){const i=q.deps.indexOf(fromId);
  else{q.deps.push(fromId);toast(`“${(find(fromId)||{}).title||"Quest"}” is now a prerequisite of “${q.title||"Untitled"}”.`)}
  save();drawCanvas();panel()}
 const aiText={q:"",c:""};let sample=null,busy=false;
-const KK="questwright-key";
-const getKey=()=>{try{return localStorage.getItem(KK)||""}catch(e){return ""}};
+const PV={anthropic:"Anthropic (Claude)",openai:"OpenAI",gemini:"Google Gemini",openrouter:"OpenRouter",custom:"Other (OpenAI-compatible)"};
+const DEF={anthropic:"claude-sonnet-5-5",openai:"gpt-4o",gemini:"gemini-2.5-flash",openrouter:"anthropic/claude-sonnet-4.5",custom:""};
+const CFGK="questwright-ai";let kd={prov:"anthropic",model:DEF.anthropic,base:"",key:""};
+function getCfg(){try{const r=localStorage.getItem(CFGK);if(r)return JSON.parse(r);const k=localStorage.getItem("questwright-key");if(k)return{prov:"anthropic",key:k,model:DEF.anthropic}}catch(e){}return null}
 async function keyJson(prompt){
- const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":getKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-5-5",max_tokens:4000,messages:[{role:"user",content:prompt}]})});
- if(!r.ok){const e=new Error("api");e.code=r.status===401?"bad_key":r.status===429?"rate_limited":"api";throw e}
- const d=await r.json();const t=(d.content||[]).map(c=>c.text||"").join("").replace(/```json|```/g,"").trim();
+ const c=getCfg();if(!c)throw{code:"bad_key"};
+ let url,headers={"content-type":"application/json"},body,pick;
+ if(c.prov==="anthropic"){url="https://api.anthropic.com/v1/messages";headers["x-api-key"]=c.key;headers["anthropic-version"]="2023-06-01";headers["anthropic-dangerous-direct-browser-access"]="true";body={model:c.model,max_tokens:4000,messages:[{role:"user",content:prompt}]};pick=d=>(d.content||[]).map(x=>x.text||"").join("")}
+ else if(c.prov==="gemini"){url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(c.model)}:generateContent`;headers["x-goog-api-key"]=c.key;body={contents:[{parts:[{text:prompt}]}],generationConfig:{responseMimeType:"application/json"}};pick=d=>(((d.candidates||[])[0]||{}).content||{parts:[]}).parts.map(x=>x.text||"").join("")}
+ else{const base=c.prov==="openai"?"https://api.openai.com/v1":c.prov==="openrouter"?"https://openrouter.ai/api/v1":String(c.base||"").replace(/\/+$/,"");url=base+"/chat/completions";if(c.key)headers.authorization="Bearer "+c.key;body={model:c.model,messages:[{role:"user",content:prompt}]};if(c.prov==="openai")body.response_format={type:"json_object"};pick=d=>((d.choices||[{}])[0].message||{}).content||""}
+ let r;try{r=await fetch(url,{method:"POST",headers,body:JSON.stringify(body)})}catch(e){throw{code:"net"}}
+ if(!r.ok)throw{code:[401,403].includes(r.status)?"bad_key":r.status===429?"rate_limited":"api"};
+ const t=String(pick(await r.json())).replace(/```json|```/g,"").trim();
  return JSON.parse(t.slice(t.indexOf("{"),t.lastIndexOf("}")+1))}
 let aiMode="";
 (async()=>{let waited=false;try{if(window.claude){waited=true;sample=await claude.use("sample")}}catch(e){}
- if(sample)aiMode="claude";else if(!window.claude&&getKey()){sample={json:keyJson};aiMode="key"}
+ if(sample)aiMode="claude";else if(!window.claude&&getCfg()){sample={json:keyJson};aiMode="key"}
  if(waited)panel()})();
 function keyBox(){
  if(aiMode==="claude")return "";
  if(window.claude&&aiMode!=="key")return `<div class="sec"><b>AI assist</b><p class="hint">AI assist isn’t available in this view.</p></div>`;
- return `<div class="sec"><b>${aiMode?"AI key":"Turn on AI assist"}</b>${aiMode?`<p class="hint">Using your Anthropic API key, stored in this browser only.</p><button class="del" id="keyx">Remove key</button>`:`<label>Anthropic API key</label><input type="password" id="keyin" placeholder="sk-ant-…" autocomplete="off"><div class="row" style="margin-top:6px"><button class="pri" id="keys">Save key</button></div><p class="hint">The key is stored in this browser only and is sent only to Anthropic when you use an AI button. Anyone using this computer could read it, so don’t save it on a shared device, and set a spend limit on the key in the Anthropic Console.</p>`}</div>`}
+ const c=aiMode==="key"?getCfg():null;
+ if(c)return `<div class="sec"><b>AI provider</b><p class="hint">Using ${esc(PV[c.prov]||c.prov)}, model ${esc(c.model)}. The key is stored in this browser only.</p><button class="del" id="keyx">Remove key</button></div>`;
+ return `<div class="sec"><b>Turn on AI assist</b><label>Provider</label><select data-kp="prov">${opt(PV,kd.prov)}</select><label style="margin-top:6px">Model</label><input data-kp="model" value="${esc(kd.model)}" placeholder="model name">${kd.prov==="custom"?`<label style="margin-top:6px">Base URL</label><input data-kp="base" value="${esc(kd.base)}" placeholder="https://api.groq.com/openai/v1">`:""}<label style="margin-top:6px">API key${kd.prov==="custom"?" (leave empty if none)":""}</label><input type="password" data-kp="key" value="${esc(kd.key)}" autocomplete="off"><div class="row" style="margin-top:6px"><button class="pri" id="keys">Save key</button></div><p class="hint">The key is stored in this browser only and is sent only to the provider you pick. Anyone using this computer could read it, so don’t save it on a shared device, and set a spend limit on the key. Model names change, so edit the model box if a provider says it can’t find the model. If a provider blocks requests from web pages, the AI buttons will fail; OpenRouter is a good fallback.</p></div>`}
 function aiBox(k,title,ph,btn,id){
  if(!sample)return "";
  return `<div class="sec"><b>${title}</b><textarea data-ai="${k}" rows="3" placeholder="${ph}">${esc(aiText[k])}</textarea><div class="row" style="margin-top:6px"><button class="pri" id="${id}"${busy?" disabled":""}>${busy?"Thinking…":btn}</button></div></div>`}
@@ -276,7 +292,7 @@ const clean=(a,M,def)=>(Array.isArray(a)?a:[]).slice(0,8).map(x=>({type:M[x&&x.t
 async function run(prompt,apply){
  if(busy||!sample)return;busy=true;panel();toast("Asking Claude…");
  try{const r=await sample.json(prompt);apply(r);save();drawCanvas();toast("Done. Review the result and tweak anything.")}
- catch(e){toast(e&&e.code==="bad_key"?"Anthropic rejected that API key. Remove it and save it again.":e&&e.code==="not_granted"?"AI access was declined.":e&&e.code==="rate_limited"?"Rate limited. Wait a moment and try again.":"The AI reply couldn’t be used. Try rephrasing your request.")}
+ catch(e){toast(e&&e.code==="net"?"Couldn’t reach the AI provider. Check the key, model name and address. Some providers block requests from web pages.":e&&e.code==="bad_key"?"The AI provider rejected that key. Remove it and save it again.":e&&e.code==="not_granted"?"AI access was declined.":e&&e.code==="rate_limited"?"Rate limited. Wait a moment and try again.":"The AI reply couldn’t be used. Try rephrasing your request.")}
  busy=false;panel()}
 function aiQuestRun(){const q=find(S.sel);const ask=aiText.q.trim()||"Improve this quest.";
  run(`${RULES}\nChapter: ${S.ch.title}\nCurrent quest: ${JSON.stringify({title:q.title,sub:q.sub,desc:q.desc,tasks:q.tasks,rewards:q.rewards})}\nPrerequisites: ${q.deps.map(d=>(find(d)||{}).title).join(", ")||"none"}\nRequest: ${ask}\nReturn {"title":string,"sub":string,"desc":string,"tasks":[{"type":"","val":"","count":1}],"rewards":[{"type":"","val":"","count":1}]}`,r=>{
